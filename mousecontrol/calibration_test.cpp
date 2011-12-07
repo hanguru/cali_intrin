@@ -14,7 +14,7 @@
 
 // pthread ฐüทร
 #include <pthread.h>
-
+// test...
 void calibration_test(IplImage *Ipl_depth_disp, int minpoint_x, int minpoint_y, int minpoint_depth)
 {
 
