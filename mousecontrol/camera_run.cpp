@@ -818,6 +818,10 @@ void camera_operate()
 	PostureClassifier posture;
 	int hand_palm = 0;
 
+	FILE *cal_focal;
+	cal_focal = fopen ("calibration_fxfy.dat", "w+");
+	fclose(cal_focal);
+
 	while( !depth_updating ) {}
 
 	while(!PROG_EXIT)
