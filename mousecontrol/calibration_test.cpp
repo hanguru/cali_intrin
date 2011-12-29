@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
+// git test
 // OpenGL ฐüทร
 #include <gl\glut.h>
 #include <gl\GL.h>
