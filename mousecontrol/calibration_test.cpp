@@ -24,8 +24,9 @@ struct cal_data
 
 #define CAL_NUM 100
 cal_data h_cal_data[CAL_NUM], v_cal_data[CAL_NUM];
-int h_cal_num=0, v_cal_num=0;
+int h_cal_num=0, v_cal_num=0, focal_x_num=0, focal_y_num=0;
 CvPoint left_pt[CAL_NUM], right_pt[CAL_NUM];
+float focal_x[CAL_NUM*CAL_NUM], focal_y[CAL_NUM*CAL_NUM];
 
 float left_x_ave=0, left_y_ave=0, right_x_ave=0, right_y_ave=0, left_depth_ave=0, right_depth_ave=0;
 
@@ -151,7 +152,7 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 
 		if( (left_y == right_y)&(left_y != 0) & (h_cal_num<CAL_NUM))
 		{
-			if ( (h_cal_num == 0) | (left_pt[h_cal_num].x != left_x) | (right_pt[h_cal_num].x != right_x) )
+			if ( (h_cal_num == 0) | ((abs(left_pt[h_cal_num-1].x - left_x) > 10) & (abs(right_pt[h_cal_num-1].x - right_x) > 10)) )
 			{
 				
 				cvLine(Ipl_calibration_test, cvPoint(left_x, left_y), cvPoint(right_x, right_y), CV_RGB(255,0,0), 2, 4, 0);
@@ -188,6 +189,9 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 								//fprintf (cal_focal, "%d\t%d\t%d\t%d\t%f\n", a, b, c, d, fx_square);
 								fprintf (cal_focal, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n", left_x-320, left_depth, right_x-320, right_depth, left_pt[i].x-320, left_pt[i].y, right_pt[i].x-320, right_pt[i].y, fx_square, sqrt(fx_square));
 								fclose(cal_focal);
+
+								focal_x[focal_x_num] = sqrt(fx_square);
+								focal_x_num++;
 							}
 						}
 					}
@@ -230,7 +234,17 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 
 	//sprintf( s_text, "min_x=%d, min_y=%d", minpoint_x, minpoint_y);
 	
-	sprintf( s_text, "left_x=%d, left_y=%d, right_x=%d, right_y=%d H_length = %d", left_x, left_y, right_x, right_y, right_x-left_x);
+	float focal_x_ave=0;
+	if ( focal_x_num > 0 & focal_x_num <= CAL_NUM*CAL_NUM)
+	{
+		for (int i=0; i<focal_x_num; i++)
+		{
+			focal_x_ave += focal_x[i];
+		}
+		focal_x_ave /= focal_x_num;
+	}
+
+	sprintf( s_text, "focal_x=%f left_x=%d, left_y=%d, right_x=%d, right_y=%d H_length = %d", focal_x_ave, left_x, left_y, right_x, right_y, right_x-left_x);
 	cvPutText (Ipl_calibration_test, s_text,cvPoint(10,30), &font, cvScalar(255,255,0));
 
 	sprintf( s_text, "top_x=%d, top_y=%d, bottom_x=%d, bottom_y=%d V_length = %d", top_x, top_y, bottom_x, bottom_y, bottom_y-top_y);
