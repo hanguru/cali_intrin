@@ -955,7 +955,7 @@ void camera_operate()
 
 		//cvShowImage("Depth", Ipl_depth );
 	
-		cvShowImage("Depth_disp", Ipl_depth_disp );
+		//cvShowImage("Depth_disp", Ipl_depth_disp );
 		//cvShowImage("Image", Ipl_rgb );
 		
 		//cvShowImage("Image2", Ipl_rgb2);
