@@ -31,6 +31,8 @@ float focal_x[CAL_NUM*CAL_NUM], focal_y[CAL_NUM*CAL_NUM];
 float left_x_ave=0, left_y_ave=0, right_x_ave=0, right_y_ave=0, left_depth_ave=0, right_depth_ave=0;
 float top_x_ave=0, top_y_ave=0, bottom_x_ave=0, bottom_y_ave=0, top_depth_ave=0, bottom_depth_ave=0;
 
+int focal_test_num=0;
+
 void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, int minpoint_x, int minpoint_y, int minpoint_depth, int direction)
 {
 
@@ -44,7 +46,7 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 		for(int xx=0; xx<Ipl_depth_disp->width; xx++){ 
 
 			//p_Ipl_img_dst[xx+yy*Ipl_depth_disp->width] = p_Ipl_img_src[xx+yy*Ipl_depth_disp->width];
-			if ( (p_Ipl_img_src[xx+yy*Ipl_depth_disp->width] > minpoint_depth + 300) | 
+			if ( (p_Ipl_img_src[xx+yy*Ipl_depth_disp->width] > minpoint_depth + 400) | 
 				 (p_Ipl_img_src[xx+yy*Ipl_depth_disp->width] == 0) )
 			{
 				p_Ipl_img_dst[3*(xx+yy*Ipl_depth_disp->width) +0] = 0;
@@ -129,8 +131,32 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 	// horizontal direction
 	if (direction==0)
 	{
-		int left_depth = p_Ipl_img_src[left_x+left_y*Ipl_depth_disp->width];
-		int right_depth = p_Ipl_img_src[right_x+right_y*Ipl_depth_disp->width];
+		int left_depth, right_depth;
+#if 1
+		// focal length test
+		int x1[36] = {-256, -187, -187, -153, -130, -217, -62, -159, -117, -203, -184, -216, -230, -215, -150, -228, -238, -172, -226, -204, -101, -129, -198, -202, -202, -117, -114, -187, -166, -70, -262, -137, -269, -177, -260, -141};
+		int z1[36] = {823, 693, 483, 781, 881, 668, 976, 833, 1009, 678, 850, 644, 701, 662, 927, 638, 867, 940, 611, 723, 827, 625, 846, 724, 888, 863, 1213, 652, 556, 817, 646, 666, 885, 534, 582, 963};
+		int x2[36] = {86, 171, 193, 215, 193, 207, 222, 187, 156, 213, 152, 222, 62, 210, 159, 221, 94, 134, 47, 187, 250, 159, 148, 198, 127, 219, 108, 68, 148, 140, 24, 94, 50, 126, 21, 145};
+		int z2[36] = {836,  830,  753,  759,  873,  668,  1002,  805,  1053,  685,  838,  652,  1003,  674,  911,  627,  810,  915,  985,  735,  805,  922,  777,  701,  794,  842,  947,  1019,  870,  1140,  1012,  1040,  951,  884,  983,  1039};
+				
+		// fake sample...
+		if (focal_test_num < 36)
+		{
+			left_x = x1[focal_test_num] + 320;
+			right_x = x2[focal_test_num] + 320;
+			left_y = right_y = 100;
+			left_depth = z1[focal_test_num];
+			right_depth = z2[focal_test_num];
+			focal_test_num++;
+		}
+		
+		if (focal_test_num == 36)
+		{
+			focal_test_num = focal_test_num;
+		}
+#else
+		left_depth = p_Ipl_img_src[left_x+left_y*Ipl_depth_disp->width];
+		right_depth = p_Ipl_img_src[right_x+right_y*Ipl_depth_disp->width];
 
 		float ave_rate = 0.1;
 		left_x_ave = left_x_ave * (1-ave_rate) + left_x * ave_rate;
@@ -146,6 +172,7 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 		right_x = (int)right_x_ave;
 		right_y = (int)right_y_ave;
 		right_depth = (int)right_depth_ave;
+#endif
 
 		sprintf( s_text, "%d",left_depth);
 		cvPutText (Ipl_calibration_test, s_text,cvPoint(left_x, left_y), &font, CV_RGB(255,0,0));
@@ -153,7 +180,7 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 		cvPutText (Ipl_calibration_test, s_text,cvPoint(right_x, right_y), &font, CV_RGB(255,0,0));
 
 		//if( (left_y == right_y)&(left_y != 0) & (h_cal_num<CAL_NUM))
-		if( (abs(left_y - right_y) < 3) & (left_y != 0) & (h_cal_num<CAL_NUM))
+		if( (abs(left_y - right_y) < 2) & (left_y != 0) & (h_cal_num<CAL_NUM))
 		{
 			if ( (h_cal_num == 0) | ((abs(left_pt[h_cal_num-1].x - left_x) > 10) & (abs(right_pt[h_cal_num-1].x - right_x) > 10)) )
 			{
@@ -168,10 +195,10 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 						unsigned int c = abs((left_x-320) * left_depth - (right_x-320) * right_depth);
 						unsigned int d = abs(left_depth - right_depth);
 					
-						FILE *cal_focal;
-						cal_focal = fopen ("calibration_fxfy.dat", "a+");
-						fprintf (cal_focal, "%d\t%d\t%d\t%d\n", left_x-320, left_depth, right_x-320, right_depth);
-						fclose(cal_focal);
+						//FILE *cal_focal;
+						//cal_focal = fopen ("calibration_fxfy.dat", "a+");
+						//fprintf (cal_focal, "%d\t%d\t%d\t%d\n", left_x-320, left_depth, right_x-320, right_depth);
+						//fclose(cal_focal);
 
 						for (int i =0; i< h_cal_num; i++)
 						{
@@ -192,11 +219,11 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 								if (fx_square < 0)
 									fx_square = fx_square;
 
-								//FILE *cal_focal;
-								//cal_focal = fopen ("calibration_fxfy.dat", "a+");
-								////fprintf (cal_focal, "%d\t%d\t%d\t%d\t%f\n", a, b, c, d, fx_square);
-								//fprintf (cal_focal, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n", left_x-320, left_depth, right_x-320, right_depth, left_pt[i].x-320, left_pt[i].y, right_pt[i].x-320, right_pt[i].y, fx_square, sqrt(fx_square));
-								//fclose(cal_focal);
+								FILE *cal_focal;
+								cal_focal = fopen ("calibration_fxfy.dat", "a+");
+								//fprintf (cal_focal, "%d\t%d\t%d\t%d\t%f\n", a, b, c, d, fx_square);
+								fprintf (cal_focal, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n", left_x-320, left_depth, right_x-320, right_depth, left_pt[i].x-320, left_pt[i].y, right_pt[i].x-320, right_pt[i].y, fx_square, sqrt(fx_square));
+								fclose(cal_focal);
 
 								focal_x[focal_x_num] = sqrt(fx_square);
 								focal_x_num++;
@@ -219,8 +246,35 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 	// vertical direction
 	else
 	{
-		int top_depth = p_Ipl_img_src[top_x+top_y*Ipl_depth_disp->width];
-		int bottom_depth = p_Ipl_img_src[bottom_x+bottom_y*Ipl_depth_disp->width];
+		int top_depth, bottom_depth;
+
+#if 1
+		// focal length test
+		int y1[41] = {-117, -58, -166, -135, -104, -119, -196, -185, -185, -152, -165, -207, -202, -149, -209, -142, -101, -196, -197, -147, -192, -142, -130, -102, -180, -50, -113, -218, -164, -139, -185, -158, -51, -85, -157, -124, -122, -179, -177, -85, -178};
+		int z1[41] = {1081, 1123, 905, 1131, 1124, 904, 696, 776, 825, 966, 935, 754, 715, 992, 691, 1041, 1122, 749, 783, 637, 748, 1052, 1114, 1037, 807, 942, 1152, 704, 1001, 786, 586, 1080, 902, 985, 825, 1029, 918, 815, 673, 1069, 651};
+		int y2[41] = {136, 113, 144, 111, 139, 88, 197, 176, 153, 137, 134, 162, 183, 129, 193, 127, 151, 176, 164, 128, 176, 125, 123, 100, 168, 139, 119, 176, 116, 83, 114, 104, 123, 111, 74, 69, 102, 62, 212, 95, 106};
+		int z2[41] = {1120, 1411, 904, 1150, 1169, 1216, 731, 783, 841, 982, 949, 774, 748, 1033, 713, 1059, 1121, 771, 784, 953, 787, 1069, 1128, 1308, 825, 1250, 1249, 740, 1033, 1130, 913, 1097, 1252, 1284, 1150, 1343, 1200, 1138, 765, 1381, 970};
+				
+		// fake sample...
+		if (focal_test_num < 41)
+		{
+			top_y = y1[focal_test_num] + 240;
+			bottom_y = y2[focal_test_num] + 240;
+			top_x = bottom_x = 100;
+			top_depth = z1[focal_test_num];
+			bottom_depth = z2[focal_test_num];
+			focal_test_num++;
+		}
+		
+		if (focal_test_num == 41)
+		{
+			focal_test_num = focal_test_num;
+		}
+
+
+#else
+		top_depth = p_Ipl_img_src[top_x+top_y*Ipl_depth_disp->width];
+		bottom_depth = p_Ipl_img_src[bottom_x+bottom_y*Ipl_depth_disp->width];
 
 		float ave_rate = 0.1;
 		top_x_ave = top_x_ave * (1-ave_rate) + top_x * ave_rate;
@@ -236,13 +290,14 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 		bottom_x = (int)bottom_x_ave;
 		bottom_y = (int)bottom_y_ave;
 		bottom_depth = (int)bottom_depth_ave;
+#endif
 
 		sprintf( s_text, "%d",top_depth);
 		cvPutText (Ipl_calibration_test, s_text,cvPoint(top_x, top_y), &font, CV_RGB(255,0,0));
 		sprintf( s_text, "%d",bottom_depth);
 		cvPutText (Ipl_calibration_test, s_text,cvPoint(bottom_x, bottom_y), &font, CV_RGB(255,0,0));
 
-		if( (top_x == bottom_x)&(top_x != 0) & (v_cal_num<CAL_NUM))
+		if( (abs(top_x - bottom_x)<2)&(top_x != 0) & (v_cal_num<CAL_NUM))
 		{
 			if ( (v_cal_num == 0) | ((abs(top_pt[v_cal_num-1].x - top_y) > 10) & (abs(bottom_pt[v_cal_num-1].x - bottom_y) > 10)) )
 			{
@@ -257,10 +312,10 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 						unsigned int c = abs((top_y-240) * top_depth - (bottom_y-240) * bottom_depth);
 						unsigned int d = abs(top_depth - bottom_depth);
 
-						FILE *cal_focal;
-						cal_focal = fopen ("calibration_fxfy.dat", "a+");
-						fprintf (cal_focal, "%d\t%d\t%d\t%d\n", top_y-240, top_depth, bottom_y-240, bottom_depth);
-						fclose(cal_focal);
+						//FILE *cal_focal;
+						//cal_focal = fopen ("calibration_fxfy.dat", "a+");
+						//fprintf (cal_focal, "%d\t%d\t%d\t%d\n", top_y-240, top_depth, bottom_y-240, bottom_depth);
+						//fclose(cal_focal);
 
 
 						for (int i =0; i< v_cal_num; i++)
@@ -282,11 +337,11 @@ void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, 
 								if (fx_square < 0)
 									fx_square = fx_square;
 
-								//FILE *cal_focal;
-								//cal_focal = fopen ("calibration_fxfy.dat", "a+");
-								////fprintf (cal_focal, "%d\t%d\t%d\t%d\t%f\n", a, b, c, d, fx_square);
-								//fprintf (cal_focal, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n", top_y-240, top_depth, bottom_y-240, bottom_depth, top_pt[i].x-240, top_pt[i].y, bottom_pt[i].x-240, bottom_pt[i].y, fx_square, sqrt(fx_square));
-								//fclose(cal_focal);
+								FILE *cal_focal;
+								cal_focal = fopen ("calibration_fxfy.dat", "a+");
+								//fprintf (cal_focal, "%d\t%d\t%d\t%d\t%f\n", a, b, c, d, fx_square);
+								fprintf (cal_focal, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%f\t%f\n", top_y-240, top_depth, bottom_y-240, bottom_depth, top_pt[i].x-240, top_pt[i].y, bottom_pt[i].x-240, bottom_pt[i].y, fx_square, sqrt(fx_square));
+								fclose(cal_focal);
 
 								focal_y[focal_y_num] = sqrt(fx_square);
 								focal_y_num++;
