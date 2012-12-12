@@ -67,6 +67,9 @@ extern bool face_pos_valid;
 
 extern int scrol_state;
 
+extern void calibration_test(IplImage *Ipl_depth_disp, IplImage *Ipl_calibration_test, int minpoint_x, int minpoint_y, int minpoint_depth, int direction);
+extern bool arm_horizontal_measure, arm_vertical_measure;
+
 // Human machine interface 
 #define MOUSE_IDLE 0
 #define MOUSE_RIGHT_PUSH 1
@@ -749,7 +752,7 @@ void camera_run()
 
 void camera_operate()
 {
-	IplImage *Ipl_depth_disp;
+	IplImage *Ipl_depth_disp, *Ipl_calibration_test;
 
 	//int crop_value = 220;
 
@@ -778,6 +781,7 @@ void camera_operate()
 	Ipl_depth = cvCreateImage(cvSize(WIN_SIZE_X, WIN_SIZE_Y),16 , 1);
 */
 	Ipl_depth_disp = cvCreateImage(cvSize(WIN_SIZE_X, WIN_SIZE_Y),16 , 1);
+	Ipl_calibration_test = cvCreateImage(cvSize(WIN_SIZE_X, WIN_SIZE_Y), 8 , 3);
 
 	// for another color camera
 //	capture = cvCreateCameraCapture(0);
@@ -935,11 +939,15 @@ void camera_operate()
 		}
 
 		// arm horizontal/vertical measure
-//		if (arm_horizontal | arm_vertical_measure)
-//			calibration_test(Ipl_depth_disp,minpoint_x, minpoint_y, minpoint_depth);
-//		else if (arm_horizontal | arm_vertical_measure)
-//			calibration_test(Ipl_depth_disp,minpoint_x, minpoint_y, minpoint_depth);
+		if (arm_horizontal_measure | arm_vertical_measure)
+		{
+			if (arm_horizontal_measure)
+				calibration_test(Ipl_depth_disp,Ipl_calibration_test,minpoint_x, minpoint_y, minpoint_depth, 0);
+			else if (arm_vertical_measure)
+				calibration_test(Ipl_depth_disp,Ipl_calibration_test,minpoint_x, minpoint_y, minpoint_depth, 1);
 
+			cvShowImage("calibration_test", Ipl_calibration_test );
+		}
 
 		//cvShowImage("Depth", Ipl_depth );
 	
@@ -970,12 +978,14 @@ void camera_operate()
 	//cvReleaseImage( &Ipl_rgb );
 	//cvReleaseImage( &Ipl_rgb2 );
 	//cvReleaseImage( &Ipl_rgb2_temp );
-	
+	cvReleaseImage( &Ipl_calibration_test );
+
 	cvDestroyWindow("Depth_disp");
 	//cvDestroyWindow("Depth");
 	//cvDestroyWindow("Image");
 	//cvDestroyWindow("Image2");
 	//cvDestroyWindow("Image2_temp");
+	cvDestroyWindow("calibration_test");
 
 	// file write release
 	//my_write2.~VideoWriter();
